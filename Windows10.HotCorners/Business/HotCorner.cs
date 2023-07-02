@@ -1,98 +1,94 @@
 ﻿using Microsoft.Win32;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Windows.Forms;
 using Windows10.HotCorners.Business.Actions;
 using Windows10.HotCorners.Extension;
 using Windows10.HotCorners.Infrastructure;
 using Windows10.HotCorners.Models;
 
-namespace Windows10.HotCorners.Business
+namespace Windows10.HotCorners.Business;
+
+internal class HotCorner
 {
-    internal class HotCorner
+    private readonly IConfiguration _configuration;
+    private readonly IEnumerable<IAction> _actions;
+    private readonly ILogWriter _logWriter;
+    private RunState _state;
+    private List<Corner> _corners;
+
+    public HotCorner(IConfiguration configuration, IEnumerable<IAction> actions, ILogWriter logWriter)
     {
+        _configuration = configuration;
+        _actions = actions;
+        _logWriter = logWriter;
+        _state = RunState.Init;
+        _corners = new List<Corner>();
+        SystemEvents.DisplaySettingsChanged += (sender, args) => _state = RunState.Init;
+    }
 
-        private readonly IConfiguration _configuration;
-        private readonly IEnumerable<IAction> _actions;
-        private RunState _state;
-        private List<Corner> _corners;
-
-        public HotCorner(IConfiguration configuration, IEnumerable<IAction> actions)
+    public void Start()
+    {
+        while (true)
         {
-            _configuration = configuration;
-            _actions = actions;
-            _state = RunState.Init;
-            SystemEvents.DisplaySettingsChanged += (sender, args) => _state = RunState.Init;
+            if (_state == RunState.Error)
+                break;
+
+            else if (_state == RunState.Init)
+                Init();
+
+            else if (_state == RunState.Run)
+                Run();
         }
+    }
 
-        public void Start()
+    private void Init()
+    {
+        _logWriter.WriteLog<HotCorner>(LogLevel.Status, "Loading screen configuration");
+
+        if (_configuration.MultiMonitor)
+            _corners = Screen.AllScreens.SelectMany(x => x.Bounds.GetCorners()).ToList();
+        else
+            _corners = Screen.PrimaryScreen.Bounds.GetCorners().ToList();
+
+        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftTop));
+        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightTop));
+        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftBottom));
+        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightBottom));
+        _state = RunState.Run;
+    }
+
+    private void Run()
+    {
+        var pos = Cursor.Position;
+        if (!(_configuration.DisableOnFullScreen && ForegroundDetect.CheckFullScreen()))
         {
-            while (true)
+            var corner = _corners.FirstOrDefault(c => c.Point == pos);
+            if (corner != null)
             {
-                if (_state == RunState.Error)
-                    break;
-
-                else if (_state == RunState.Init)
-                    Init();
-
-                else if (_state == RunState.Run)
-                    Run();
+                _logWriter.WriteLog<HotCorner>(LogLevel.Status, $"Hit {corner.CornerType}");
+                _actions.FirstOrDefault(a => a.ActionType == SelectAction(corner))?.DoAction();
             }
+            _logWriter.WriteLog<HotCorner>(LogLevel.Trace, pos);
         }
 
-        private void Init()
+        while (Cursor.Position == pos) Thread.Sleep(100);
+        Thread.Sleep(100);
+    }
+
+    private ActionType SelectAction(Corner corner)
+    {
+        return corner.CornerType switch
         {
-            Context.WriteLog<HotCorner>(LogLevel.Status, "Loading screen configuration");
+            CornerType.LeftTop => _configuration.LeftTopAction,
+            CornerType.RightTop => _configuration.RightTopAction,
+            CornerType.LeftBottom => _configuration.LeftBottomAction,
+            CornerType.RightBottom => _configuration.RightBottomAction,
+            _ => ActionType.NoAction,
+        };
+    }
 
-            _corners = new List<Corner>();
-            if (_configuration.MultiMonitor)
-                _corners = Screen.AllScreens.SelectMany(x => x.Bounds.GetCorners()).ToList();
-            else
-                _corners = Screen.PrimaryScreen.Bounds.GetCorners().ToList();
-
-            Context.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftTop));
-            Context.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightTop));
-            Context.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftBottom));
-            Context.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightBottom));
-            _state = RunState.Run;
-        }
-
-        private void Run()
-        {
-            var pos = Cursor.Position;
-            if (!(_configuration.DisableOnFullScreen && ForegroundDetect.CheckFullScreen()))
-            {
-                var corner = _corners.FirstOrDefault(c => c.Point == pos);
-                if (corner != null)
-                {
-                    Context.WriteLog<HotCorner>(LogLevel.Status, $"Hit {corner.CornerType}");
-                    _actions.FirstOrDefault(a => a.ActionType == SelectAction(corner))?.DoAction();
-                }
-                Context.WriteLog<HotCorner>(LogLevel.Trace, pos);
-            }
-
-            while (Cursor.Position == pos) Thread.Sleep(100);
-            Thread.Sleep(100);
-        }
-
-        private ActionType SelectAction(Corner corner)
-        {
-            switch (corner.CornerType)
-            { 
-                case CornerType.LeftTop: return _configuration.LeftTopAction;
-                case CornerType.RightTop: return _configuration.RightTopAction;
-                case CornerType.LeftBottom: return _configuration.LeftBottomAction;
-                case CornerType.RightBottom: return _configuration.RightBottomAction;
-                default: return ActionType.NoAction;
-            }
-        }
-
-        private enum RunState
-        {
-            Init,
-            Run,
-            Error
-        }
+    private enum RunState
+    {
+        Init,
+        Run,
+        Error
     }
 }

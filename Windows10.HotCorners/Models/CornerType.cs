@@ -1,10 +1,9 @@
-﻿namespace Windows10.HotCorners.Models
+﻿namespace Windows10.HotCorners.Models;
+
+internal enum CornerType
 {
-    internal enum CornerType
-    {
-        LeftTop,
-        RightTop,
-        LeftBottom,
-        RightBottom
-    }
+    LeftTop,
+    RightTop,
+    LeftBottom,
+    RightBottom
 }

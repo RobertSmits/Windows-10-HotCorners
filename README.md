@@ -13,7 +13,7 @@ The configuration contains fields for all corner of your screen, following actio
 
 - `NoAction`
   Don't do anything.
-- `Sart`
+- `Start`
   Open the Start Menu, due to a limitation in windows the start manu will always open on the primary monitor, to work arround this issue see the `Click` action.
 - `TaskView`
   Open Windows 10 Task View

@@ -1,25 +1,21 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+﻿using System.Diagnostics;
 
-namespace Windows10.HotCorners.Business
+namespace Windows10.HotCorners.Business;
+
+internal static class ProcessChecker
 {
-    internal static class ProcessChecker
+    public static void CheckRunningProcess()
     {
-        public static void CheckRunningProcess()
-        {
-            var currentProcess = Process.GetCurrentProcess();
-            var filename = Path.GetFileName(currentProcess.MainModule.FileName);
-            var fileExtPos = filename.LastIndexOf(".", StringComparison.Ordinal);
-            if (fileExtPos >= 0) filename = filename.Substring(0, fileExtPos);
-            var process = Process.GetProcessesByName(filename).Where(p => p.Id != currentProcess.Id).ToArray();
-            if (process.Length == 0) return;
+        var currentProcess = Process.GetCurrentProcess();
+        var filename = Path.GetFileName(currentProcess.MainModule.FileName);
+        var fileExtPos = filename.LastIndexOf(".", StringComparison.Ordinal);
+        if (fileExtPos >= 0) filename = filename.Substring(0, fileExtPos);
+        var process = Process.GetProcessesByName(filename).Where(p => p.Id != currentProcess.Id).ToArray();
+        if (process.Length == 0) return;
 
-            foreach (var p in process)
-                p.Kill();
+        foreach (var p in process)
+            p.Kill();
 
-            Environment.Exit(0);
-        }
+        Environment.Exit(0);
     }
 }
