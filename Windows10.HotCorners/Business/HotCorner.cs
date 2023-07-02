@@ -1,7 +1,8 @@
-﻿using Microsoft.Win32;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using Windows10.HotCorners.Business.Actions;
 using Windows10.HotCorners.Extension;
-using Windows10.HotCorners.Infrastructure;
 using Windows10.HotCorners.Models;
 
 namespace Windows10.HotCorners.Business;
@@ -10,15 +11,15 @@ internal class HotCorner
 {
     private readonly IConfiguration _configuration;
     private readonly IEnumerable<IAction> _actions;
-    private readonly ILogWriter _logWriter;
+    private readonly ILogger _logger;
     private RunState _state;
     private List<Corner> _corners;
 
-    public HotCorner(IConfiguration configuration, IEnumerable<IAction> actions, ILogWriter logWriter)
+    public HotCorner(ILogger<HotCorner> logger, IConfiguration configuration, IEnumerable<IAction> actions)
     {
+        _logger = logger;
         _configuration = configuration;
         _actions = actions;
-        _logWriter = logWriter;
         _state = RunState.Init;
         _corners = new List<Corner>();
         SystemEvents.DisplaySettingsChanged += (sender, args) => _state = RunState.Init;
@@ -41,17 +42,17 @@ internal class HotCorner
 
     private void Init()
     {
-        _logWriter.WriteLog<HotCorner>(LogLevel.Status, "Loading screen configuration");
+        _logger.LogInformation("Loading screen configuration");
 
         if (_configuration.MultiMonitor)
             _corners = Screen.AllScreens.SelectMany(x => x.Bounds.GetCorners()).ToList();
         else
             _corners = Screen.PrimaryScreen.Bounds.GetCorners().ToList();
 
-        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftTop));
-        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightTop));
-        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.LeftBottom));
-        _logWriter.WriteLog<HotCorner>(LogLevel.Status, _corners.Where(c => c.CornerType == CornerType.RightBottom));
+        _logger.LogDebug("Left Top:     {cornerList}", JsonSerializer.Serialize(_corners.Where(c => c.CornerType == CornerType.LeftTop)));
+        _logger.LogDebug("Right Top:    {cornerList}", JsonSerializer.Serialize(_corners.Where(c => c.CornerType == CornerType.RightTop)));
+        _logger.LogDebug("Left Bottom:  {cornerList}", JsonSerializer.Serialize(_corners.Where(c => c.CornerType == CornerType.LeftBottom)));
+        _logger.LogDebug("Right Bottom: {cornerList}", JsonSerializer.Serialize(_corners.Where(c => c.CornerType == CornerType.RightBottom)));
         _state = RunState.Run;
     }
 
@@ -60,13 +61,13 @@ internal class HotCorner
         var pos = Cursor.Position;
         if (!(_configuration.DisableOnFullScreen && ForegroundDetect.CheckFullScreen()))
         {
+            _logger.LogTrace("Current Position: X: {x} Y: {y}", pos.X, pos.Y);
             var corner = _corners.FirstOrDefault(c => c.Point == pos);
             if (corner != null)
             {
-                _logWriter.WriteLog<HotCorner>(LogLevel.Status, $"Hit {corner.CornerType}");
+                _logger.LogInformation("Hit {cornerType}:", corner.CornerType);
                 _actions.FirstOrDefault(a => a.ActionType == SelectAction(corner))?.DoAction();
             }
-            _logWriter.WriteLog<HotCorner>(LogLevel.Trace, pos);
         }
 
         while (Cursor.Position == pos) Thread.Sleep(100);

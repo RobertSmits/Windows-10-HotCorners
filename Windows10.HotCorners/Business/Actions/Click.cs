@@ -1,16 +1,15 @@
-﻿using Windows10.HotCorners.Infrastructure;
-using Windows10.HotCorners.Models;
+﻿using Microsoft.Extensions.Logging;
 using WindowsInput;
 
 namespace Windows10.HotCorners.Business.Actions;
 
 internal class Click : IAction
 {
-    private readonly ILogWriter _logWriter;
+    private readonly ILogger _logger;
 
-    public Click(ILogWriter logWriter)
+    public Click(ILogger<Click> logger)
     {
-        _logWriter = logWriter;
+        _logger = logger;
     }
 
     public ActionType ActionType => ActionType.Click;
@@ -18,7 +17,7 @@ internal class Click : IAction
 
     public void DoAction()
     {
-        _logWriter.WriteLog<Click>(LogLevel.Status, "Clicking");
+        _logger.LogInformation("Clicking");
 
         var m = new MouseSimulator(new InputSimulator());
         try
@@ -27,7 +26,7 @@ internal class Click : IAction
         }
         catch (Exception e)
         {
-            _logWriter.WriteLog<Click>(LogLevel.Error, e.ToString());
+            _logger.LogError(e, "error occured while executing action");
         }
     }
 }

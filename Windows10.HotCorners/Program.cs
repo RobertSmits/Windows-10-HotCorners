@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Windows10.HotCorners.Business;
 using Windows10.HotCorners.Models;
 
@@ -21,10 +22,11 @@ internal class Program
         var services = new ServiceCollection();
         Bootstrapper.ConfigureContainer(services);
         var serviceProvider = services.BuildServiceProvider();
+        var minLogLevel = serviceProvider.GetRequiredService<IConfiguration>().LogLevel;
 
-        if (serviceProvider.GetRequiredService<IConfiguration>().LogLevel != LogLevel.Disable)
+        if (minLogLevel < LogLevel.None)
             AllocConsole();
-
+            
         serviceProvider.GetRequiredService<HotCorner>().Start();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Windows10.HotCorners.Business.Actions;
+﻿using Microsoft.Extensions.Logging;
+using Windows10.HotCorners.Business.Actions;
 
 namespace Windows10.HotCorners.Models;
 

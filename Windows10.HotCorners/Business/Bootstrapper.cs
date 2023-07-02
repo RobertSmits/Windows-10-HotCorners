@@ -2,27 +2,34 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Windows10.HotCorners.Business.Actions;
-using Windows10.HotCorners.Infrastructure;
 using Windows10.HotCorners.Models;
 
 namespace Windows10.HotCorners.Business;
 
 internal static class Bootstrapper
 {
-    public static void ConfigureContainer(IServiceCollection container)
+    public static void ConfigureContainer(IServiceCollection services)
     {
-        container.AddSingleton(GetConfiguration());
-        container.AddSingleton<ILogWriter, LogWriter>();
-        container.AddSingleton<HotCorner>();
+        var configuration = GetConfiguration();
+        services.AddSingleton(configuration);
+        services.AddSingleton<HotCorner>();
 
-        var actionTypes = Assembly.GetAssembly(typeof(Bootstrapper))
+        var minLogLevel = configuration.LogLevel;
+        services.AddLogging(builder => {
+            builder
+                .SetMinimumLevel(minLogLevel)
+                .AddConsole();
+        });
+
+        var actionTypes = Assembly.GetExecutingAssembly()
             .GetTypes()
             .Where(type => !type.IsAbstract && type.GetInterfaces().Contains(typeof(IAction)));
 
         foreach (var actionType in actionTypes)
         {
-            container.AddSingleton(typeof(IAction), actionType);
+            services.AddSingleton(typeof(IAction), actionType);
         }
     }
 

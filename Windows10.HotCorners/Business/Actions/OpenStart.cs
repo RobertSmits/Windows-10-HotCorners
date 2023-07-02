@@ -1,5 +1,4 @@
-﻿using Windows10.HotCorners.Infrastructure;
-using Windows10.HotCorners.Models;
+﻿using Microsoft.Extensions.Logging;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -7,11 +6,11 @@ namespace Windows10.HotCorners.Business.Actions;
 
 internal class OpenStart : IAction
 {
-    private readonly ILogWriter _logWriter;
+    private readonly ILogger _logger;
 
-    public OpenStart(ILogWriter logWriter)
+    public OpenStart(ILogger<OpenStart> logger)
     {
-        _logWriter = logWriter;
+        _logger = logger;
     }
 
     public ActionType ActionType => ActionType.Sart;
@@ -19,7 +18,7 @@ internal class OpenStart : IAction
 
     public void DoAction()
     {
-        _logWriter.WriteLog<OpenStart>(LogLevel.Status, "Opening Start");
+        _logger.LogInformation("Opening Start");
         var ks = new KeyboardSimulator(new InputSimulator());
         try
         {
@@ -27,7 +26,7 @@ internal class OpenStart : IAction
         }
         catch (Exception e)
         {
-            _logWriter.WriteLog<OpenStart>(LogLevel.Error, e.ToString());
+            _logger.LogError(e, "error occured while executing action");
         }
     }
 }

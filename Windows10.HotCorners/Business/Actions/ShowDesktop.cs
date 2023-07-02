@@ -1,5 +1,4 @@
-﻿using Windows10.HotCorners.Infrastructure;
-using Windows10.HotCorners.Models;
+﻿using Microsoft.Extensions.Logging;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -7,11 +6,11 @@ namespace Windows10.HotCorners.Business.Actions;
 
 internal class ShowDesktop : IAction
 {
-    private readonly ILogWriter _logWriter;
+    private readonly ILogger _logger;
 
-    public ShowDesktop(ILogWriter logWriter)
+    public ShowDesktop(ILogger<ShowDesktop> logger)
     {
-        _logWriter = logWriter;
+        _logger = logger;
     }
 
     public ActionType ActionType => ActionType.Desktop;
@@ -19,7 +18,7 @@ internal class ShowDesktop : IAction
 
     public void DoAction()
     {
-        _logWriter.WriteLog<ShowDesktop>(LogLevel.Status, "Showing Desktop");
+        _logger.LogInformation("Showing Desktop");
         var ks = new KeyboardSimulator(new InputSimulator());
         try
         {
@@ -27,7 +26,7 @@ internal class ShowDesktop : IAction
         }
         catch (Exception e)
         {
-            _logWriter.WriteLog<ShowDesktop>(LogLevel.Error, e.ToString());
+            _logger.LogError(e, "error occurred while executing action");
         }
     }
 }

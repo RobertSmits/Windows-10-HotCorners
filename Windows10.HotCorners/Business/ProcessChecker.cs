@@ -7,9 +7,7 @@ internal static class ProcessChecker
     public static void CheckRunningProcess()
     {
         var currentProcess = Process.GetCurrentProcess();
-        var filename = Path.GetFileName(currentProcess.MainModule.FileName);
-        var fileExtPos = filename.LastIndexOf(".", StringComparison.Ordinal);
-        if (fileExtPos >= 0) filename = filename.Substring(0, fileExtPos);
+        var filename = Path.GetFileNameWithoutExtension(currentProcess.MainModule?.FileName);
         var process = Process.GetProcessesByName(filename).Where(p => p.Id != currentProcess.Id).ToArray();
         if (process.Length == 0) return;
 

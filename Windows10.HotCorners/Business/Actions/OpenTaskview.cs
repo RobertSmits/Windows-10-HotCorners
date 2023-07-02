@@ -1,5 +1,4 @@
-﻿using Windows10.HotCorners.Infrastructure;
-using Windows10.HotCorners.Models;
+﻿using Microsoft.Extensions.Logging;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -7,11 +6,11 @@ namespace Windows10.HotCorners.Business.Actions;
 
 internal class OpenTaskView : IAction
 {
-    private readonly ILogWriter _logWriter;
+    private readonly ILogger _logger;
 
-    public OpenTaskView(ILogWriter logWriter)
+    public OpenTaskView(ILogger<OpenTaskView> logger)
     {
-        _logWriter = logWriter;
+        _logger = logger;
     }
 
     public ActionType ActionType => ActionType.TaskView;
@@ -19,7 +18,7 @@ internal class OpenTaskView : IAction
 
     public void DoAction()
     {
-        _logWriter.WriteLog<OpenTaskView>(LogLevel.Status, "Opening TaskView");
+        _logger.LogInformation("Opening TaskView");
         var ks = new KeyboardSimulator(new InputSimulator());
         try
         {
@@ -27,7 +26,7 @@ internal class OpenTaskView : IAction
         }
         catch (Exception e)
         {
-            _logWriter.WriteLog<OpenTaskView>(LogLevel.Error, e.ToString());
+            _logger.LogError(e, "error occured while executing action");
         }
     }
 }
