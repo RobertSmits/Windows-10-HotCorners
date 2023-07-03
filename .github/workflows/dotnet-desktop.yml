@@ -1,0 +1,53 @@
+name: .NET Core Desktop
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Release]
+
+    runs-on: windows-latest
+    
+    env:
+      Solution_Name: Windows10.HotCorners.sln
+      Project_Directory: Windows10.HotCorners
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore the application
+      run: dotnet restore $env:Solution_Name
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Build the application
+      run: dotnet build $env:Solution_Name -c $env:Configuration
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Publish the application
+      run: dotnet publish $env:Solution_Name -c $env:Configuration --no-build
+      env:
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Windows10.HotCorners.${{ matrix.configuration }}
+        path: ${{ env.Project_Directory }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\Windows10.HotCorners.exe
